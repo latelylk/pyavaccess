@@ -17,8 +17,8 @@ classifiers = [
 dependencies = [
     "pyserial>=3.5",
 ]
-license = {file = "LICENSE"}
+license = {text = "GPLv3+"}
 
 [project.urls]
-"Homepage" = "https://github.com/latelylk/pyavaccess"
-"Bug Tracker" = "https://github.com/latelylk/pyavaccess/issues"
+"Source Code" = "https://github.com/latelylk/pyavaccess"
+"Bug Reports" = "https://github.com/latelylk/pyavaccess/issues"
