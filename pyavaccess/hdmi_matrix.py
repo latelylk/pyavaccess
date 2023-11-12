@@ -1,7 +1,8 @@
 import logging
+from re import Pattern
 
 from .avaccess_serial import AVAccessSerial
-from .config.matrix_devices import MatrixDevices
+from .config.matrix_devices import MatrixDevices, PATTERN_ALL, PATTERN_OUT
 
 # Config
 _LOGGER = logging.getLogger(__name__)
@@ -41,12 +42,15 @@ class HDMIMatrixSerial(AVAccessSerial):
         """
         _LOGGER.debug("Matching %s to config...", device)
 
+        # User device input case insensitive
+        absDevice = device.upper()
+
         # If the device is not in the config, raise an error
-        if device not in MatrixDevices:
+        if absDevice not in MatrixDevices:
             raise ValueError("Device %s does not exist in the config!", device)
 
         # Only return the config for the device
-        return MatrixDevices[device]
+        return MatrixDevices[absDevice]
 
     """ Function Helper Methods """
 
@@ -120,39 +124,36 @@ class HDMIMatrixSerial(AVAccessSerial):
 
     """ Output Formatting Methods """
 
-    def mappingToKeyValue(self, mapping: str) -> dict:
-        """
-        Convert a mapping string to a key value pair
-        @param mapping: mapping string (ex: "MP in1 out2")
-        @return: key value pair
-        """
-        # Find the positions of "in" and "out" in the mapping string
-        in_index = mapping.find("in")
-        out_index = mapping.find("out")
-
-        # Extract the input and output values based on the positions
-        input_value = mapping[in_index + 2 : out_index].strip()
-        output_value = mapping[out_index + 3 :].strip()
-
-        return {output_value: input_value}
-
-    def mapAllToKeyValue(self, mapping: str, count: int) -> dict:
+    def mapWithPattern(self, mapping: str, pattern: Pattern[str]) -> dict:
         """
         Create a dictionary for all values
         @param mapping: mapping string (ex: "MP in1 all")
-        @param count: number of outputs for the dict
-        @return: dictionary mapping all outputs to an input
+        @param pattern: number of outputs for the dict
+        @return: dictionary mapping all outputs to an input  {out: in, out: in, ...}
         """
-        # Find the positions of "in" and "out" in the mapping string
-        in_index = mapping.find("in")
-        all_index = mapping.find("all")
-
-        # Extract the input and output values based on the positions
-        input_value = mapping[in_index + 2 : all_index].strip()
-
+        # Split the input by newline character to process each line separately
+        outputLines = mapping.split("\r\n")
         outputKV = {}
-        for i in range(1, count + 1):
-            outputKV[str(i)] = input_value
+
+        # Create a dictionary using all lines of output
+        for line in outputLines:
+            # Match the current line against the provided pattern
+            pattern_match = pattern.match(line)
+            # If the pattern matches, add the input value to the dictionary
+            if not pattern_match:
+                continue
+
+            # Input is the first group in the pattern
+            input_value = int(pattern_match.group(1))
+
+            # If the pattern is for all, create the dict in one shot
+            if pattern == PATTERN_ALL:
+                outputKV = {str(i): input_value for i in range(1, self.outputs + 1)}
+                break
+
+            # If the pattern is for a single output, add the output to the dict and keep going
+            output_value = int(pattern_match.group(2))
+            outputKV[output_value] = input_value
 
         return outputKV
 
@@ -213,10 +214,10 @@ class HDMIMatrixSerial(AVAccessSerial):
 
     """ Status Methods """
 
-    def getMapping(self, outNum: int) -> str:
+    def getMapping(self, outNum: int) -> dict:
         """
         @param outNum: output number
-        @return: Current input number mapped to the output
+        @return: Dict w/ input number mapped to the output {out: in}
         """
         if not self.isOutNumInBounds(outNum):
             return
@@ -225,17 +226,17 @@ class HDMIMatrixSerial(AVAccessSerial):
         _LOGGER.debug("Getting mapping for output %s...", outNum)
         deviceOutput = self._SendData(cmdStr)
         _LOGGER.debug("Device output: %s", deviceOutput)
-        return self.mappingToKeyValue(deviceOutput)
+        return self.mapWithPattern(deviceOutput, PATTERN_OUT)
 
-    def getMappings(self) -> str:
+    def getMappings(self) -> dict:
         """
-        @return: Current input mapping to all outputs
+        @return: Dictionary of current input mapping to all outputs {out: in, out: in, ...}
         """
         cmdStr = "GET MP all"
         _LOGGER.debug("Getting mappings for all outputs...")
         deviceOutput = self._SendData(cmdStr, lineCount=self.outputs)
         _LOGGER.debug("Device output: %s", deviceOutput)
-        return deviceOutput
+        return self.mapWithPattern(deviceOutput, PATTERN_OUT)
 
     def getAutoCECStatus(self, outNum: int) -> str:
         """
@@ -324,7 +325,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         Map an input to an output
         @param outNum: output number
         @param inNum: input number
-        @return: Current mapping of the output
+        @return: Dict of current input mapped to the output {out: in}
         """
         if not self.isOutNumInBounds(outNum) or not self.isInputNumInBounds(inNum):
             return
@@ -333,7 +334,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         _LOGGER.debug("Mapping input %s to output %s...", inNum, outNum)
         deviceOutput = self._SendData(cmdStr)
         _LOGGER.debug("Device output: %s", deviceOutput)
-        return self.mappingToKeyValue(deviceOutput)
+        return self.mapWithPattern(deviceOutput, PATTERN_OUT)
 
     def mapAllOutputs(self, inNum: int) -> dict:
         """
@@ -348,7 +349,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         _LOGGER.debug("Mapping input %s to all outputs...", inNum)
         deviceOutput = self._SendData(cmdStr)
         _LOGGER.debug("Device output: %s", deviceOutput)
-        return self.mapAllToKeyValue(deviceOutput, self.outputs)
+        return self.mapWithPattern(deviceOutput, PATTERN_ALL)
 
     def setCECPower(self, outNum: int, state: bool) -> str:
         """
