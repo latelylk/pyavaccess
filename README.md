@@ -36,5 +36,5 @@ for output, input in outputMap.items():
 av.mapOutput(1, 4)
 
 # Check that the mapping was successful
-assert av.getMapping(1)[1] == 4
+assert av.getMapping(1) == 4
 ```

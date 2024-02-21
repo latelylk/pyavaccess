@@ -214,10 +214,10 @@ class HDMIMatrixSerial(AVAccessSerial):
 
     """ Status Methods """
 
-    def getMapping(self, outNum: int) -> dict:
+    def getMapping(self, outNum: int) -> int:
         """
         @param outNum: output number
-        @return: Dict w/ input number mapped to the output {out: in}
+        @return: The input number mapped to the specified output
         """
         if not self.isOutNumInBounds(outNum):
             return
@@ -226,7 +226,10 @@ class HDMIMatrixSerial(AVAccessSerial):
         _LOGGER.debug("Getting mapping for output %s...", outNum)
         deviceOutput = self._SendData(cmdStr)
         _LOGGER.debug("Device output: %s", deviceOutput)
-        return self.mapWithPattern(deviceOutput, PATTERN_OUT)
+        # Get dict w/ input number mapped to the output {out: in}
+        outputMap = self.mapWithPattern(deviceOutput, PATTERN_OUT)
+        # Only return the input number
+        return outputMap[outNum]
 
     def getMappings(self) -> dict:
         """
