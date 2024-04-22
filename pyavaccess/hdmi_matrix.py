@@ -13,20 +13,19 @@ class HDMIMatrixSerial(AVAccessSerial):
     General class for AV Access HDMI Matrix devices
     """
 
-    def __init__(
-        self,
-        url: str,
-        device: str,
-    ) -> None:
+    def __init__(self, url: str, device: str) -> None:
         """
         Initialize the AVAccess device for connecting over serial
         """
-        # Get the device config from the yaml file
-        deviceConfig = self._getDeviceConfig(device)
-
         _LOGGER.debug("Creating HDMI Matrix %s...")
         super().__init__(url)
+
+        # Begin device setup
         self.model = device
+        self.apiVersion = self.getVer()
+
+        # Get the device config from the yaml file
+        deviceConfig = self._getDeviceConfig(device, self.apiVersion)
         self.inputs = deviceConfig["inputCount"]
         self.outputs = deviceConfig["outputCount"]
         self.audioOutputs = deviceConfig["audioOutputs"]
@@ -35,22 +34,27 @@ class HDMIMatrixSerial(AVAccessSerial):
         self.irModeCount = deviceConfig["irModeCount"]
         self.commandCount = deviceConfig["commandCount"]
 
-    def _getDeviceConfig(self, device: str) -> dict:
+
+    def _getDeviceConfig(self, device: str, apiVersion: str) -> dict:
         """
         @param device: Device name
+        @param apiVersion APi version string in format "VER #.#.#"
         @return: Configuration for the device
         """
-        _LOGGER.debug("Matching %s to config...", device)
+        _LOGGER.debug("Finding config for %s version %s...", device, apiVersion)
+        # Don't send anything to the device if we don't know what version we're using
+        if apiVersion not in MatrixDevices:
+            raise ValueError("Device version %s does not exist in the config!", apiVersion)
 
         # User device input case insensitive
         absDevice = device.upper()
 
         # If the device is not in the config, raise an error
-        if absDevice not in MatrixDevices:
+        if absDevice not in MatrixDevices[apiVersion]:
             raise ValueError("Device %s does not exist in the config!", device)
 
         # Only return the config for the device
-        return MatrixDevices[absDevice]
+        return MatrixDevices[apiVersion][absDevice]
 
     """ Function Helper Methods """
 
