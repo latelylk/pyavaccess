@@ -31,6 +31,11 @@ class AVAccessSerial:
         @param cmdStr: Data to send
         @return: Response from the device
         """
+        _LOGGER.debug("Checking cmdStr content before sending to device")
+        # Make sure string exists
+        if not cmdStr:
+            raise ValueError("Cannot send empty line to device!")
+
         _LOGGER.debug("Clearing buffers...")
         self._port.reset_output_buffer()
         self._port.reset_input_buffer()
@@ -50,10 +55,13 @@ class AVAccessSerial:
         while True:
             char = self._port.read(1)
 
+            # Check for end of incoming serial
             if char is None:
                 break
 
+            # If we received back nothing, but not null (ex: "")
             if not char:
+                # Usually only reached by invalid command
                 raise serial.SerialTimeoutException(
                     "Connection timed out! Last received bytes {}".format(
                         [hex(c) for c in result]
