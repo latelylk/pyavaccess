@@ -224,7 +224,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @return: The input number mapped to the specified output
         """
         if not self.isOutNumInBounds(outNum):
-            return
+            raise ValueError("Output number %s is out of bounds!", outNum)
 
         cmdStr = "GET MP out{}".format(outNum)
         _LOGGER.debug("Getting mapping for output %s...", outNum)
