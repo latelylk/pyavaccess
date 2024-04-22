@@ -64,9 +64,9 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param outNum: output number
         @return: True if in bounds, False if not
         """
+        _LOGGER.debug("Checking if output number %s is in bounds...", outNum)
         if outNum < 1 or outNum > self.outputs:
-            _LOGGER.error("Output number %s is out of bounds!", outNum)
-            return False
+            raise ValueError("Output number %s is out of bounds!", outNum)
         return True
 
     def isInputNumInBounds(self, inNum: int) -> bool:
@@ -75,9 +75,9 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param inNum: input number
         @return: True if in bounds, False if not
         """
+        _LOGGER.debug("Checking if input number %s is in bounds...", inNum)
         if inNum < 1 or inNum > self.inputs:
-            _LOGGER.error("Input number %s is out of bounds!", inNum)
-            return False
+            raise ValueError("Input number %s is out of bounds!", inNum)
         return True
 
     def isAudioOutStringOnDevice(self, outString: str) -> bool:
@@ -86,11 +86,11 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param outString: string of the audio output device
         @return: True if on device, False if not
         """
+        _LOGGER.debug("Checking if audio out string %s exists on device...", outString)
         if outString not in self.audioOutputs:
-            _LOGGER.error(
+            raise ValueError(
                 "Audio output string %s does not exist on the device!", outString
             )
-            return False
         return True
 
     def isEDIDPrmNumInBounds(self, prmNum: int) -> bool:
@@ -99,9 +99,9 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param prmNum: EDID param number
         @return: True if in bounds, False if not
         """
+        _LOGGER.debug("Checking if EDID param number %s is in bounds...", prmNum)
         if prmNum < 1 or prmNum > self.prmEDIDCount:
-            _LOGGER.error("EDID param number %s is out of bounds!", prmNum)
-            return False
+            raise ValueError("EDID param number %s is out of bounds!", prmNum)
         return True
 
     def isDelayInBounds(self, delay: int) -> bool:
@@ -110,9 +110,9 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param delay: delay in minutes
         @return: True if in bounds, False if not
         """
+        _LOGGER.debug("Checking if delay %s is in bounds...", delay)
         if delay < 1 or delay > self.maxDelay:
-            _LOGGER.error("Delay %s is out of bounds!", delay)
-            return False
+            raise ValueError("Delay %s is out of bounds!", delay)
         return True
 
     def isIRInBounds(self, mode: int) -> bool:
@@ -121,9 +121,9 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param mode: IR mode
         @return: True if in bounds, False if not
         """
+        _LOGGER.debug("Checking if IR mode %s is in bounds...", mode)
         if mode < 1 or mode > self.irModeCount:
-            _LOGGER.error("IR mode %s is out of bounds!", mode)
-            return False
+            raise ValueError("IR mode %s is out of bounds!", mode)
         return True
 
     """ Output Formatting Methods """
@@ -223,8 +223,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param outNum: output number
         @return: The input number mapped to the specified output
         """
-        if not self.isOutNumInBounds(outNum):
-            raise ValueError("Output number %s is out of bounds!", outNum)
+        self.isOutNumInBounds(outNum)
 
         cmdStr = "GET MP out{}".format(outNum)
         _LOGGER.debug("Getting mapping for output %s...", outNum)
@@ -250,8 +249,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param outNum: output number
         @return: Current "CEC AUTO POWER ON/OFF Status" of the output
         """
-        if not self.isOutNumInBounds(outNum):
-            return
+        self.isOutNumInBounds(outNum)
 
         cmdStr = "GET AUTOCEC_FN out{}".format(outNum)
         _LOGGER.debug("Getting Auto CEC status for output %s...", outNum)
@@ -264,8 +262,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param outNum: output number
         @return: Current "CEC POWER Delay Time Status" of the output
         """
-        if not self.isOutNumInBounds(outNum):
-            return
+        self.isOutNumInBounds(outNum)
 
         cmdStr = "GET AUTOCEC_D out{}".format(outNum)
         _LOGGER.debug("Getting CEC Delay for output %s...", outNum)
@@ -278,8 +275,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param inNum: input number
         @return: Current EDID Status of the input
         """
-        if not self.isInputNumInBounds(inNum):
-            return
+        self.isInputNumInBounds(inNum)
 
         cmdStr = "GET EDID in{}".format(inNum)
         _LOGGER.debug("Getting EDID status for output %s...", inNum)
@@ -303,8 +299,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param outString: string of the audio output device
         @return: Mute status of the output
         """
-        if not self.isAudioOutStringOnDevice(outString):
-            return
+        self.isAudioOutStringOnDevice(outString)
 
         cmdStr = "GET MUTE {}".format(outString)
         _LOGGER.debug("Getting mute status for %s...", outString)
@@ -334,8 +329,8 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param inNum: input number
         @return: Dict of current input mapped to the output {out: in}
         """
-        if not self.isOutNumInBounds(outNum) or not self.isInputNumInBounds(inNum):
-            return
+        self.isOutNumInBounds(outNum)
+        self.isInputNumInBounds(inNum)
 
         cmdStr = "SET SW in{} out{}".format(inNum, outNum)
         _LOGGER.debug("Mapping input %s to output %s...", inNum, outNum)
@@ -349,8 +344,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param inNum: input number
         @return: Current mapping to all outputs
         """
-        if not self.isInputNumInBounds(inNum):
-            return
+        self.isInputNumInBounds(inNum)
 
         cmdStr = "SET SW in{} all".format(inNum)
         _LOGGER.debug("Mapping input %s to all outputs...", inNum)
@@ -365,8 +359,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param state: True = On, False = Off
         @return: Current power state of the output
         """
-        if not self.isOutNumInBounds(outNum):
-            return
+        self.isOutNumInBounds(outNum)
 
         # Get the text to use for the command based on state
         stateText = "on" if state else "off"
@@ -386,8 +379,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param state: True = On, False = Off
         @return: Current auto power state of the output
         """
-        if not self.isOutNumInBounds(outNum):
-            return
+        self.isOutNumInBounds(outNum)
 
         # Get the text to use for the command based on state
         stateText = "on" if state else "off"
@@ -407,8 +399,8 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param delay: Delay in minutes
         @return: Current delay time of the output in minutes
         """
-        if not self.isOutNumInBounds(outNum) or not self.isDelayInBounds(delay):
-            return
+        self.isOutNumInBounds(outNum)
+        self.isDelayInBounds(delay)
 
         cmdStr = "SET AUTOCEC_D out{} {}".format(outNum, delay)
         _LOGGER.debug("Setting CEC delay for output %s to %s...", outNum, delay)
@@ -423,8 +415,8 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param prmNum: EDID param number (see API)
         @return: Current EDID status of the input
         """
-        if not self.isInputNumInBounds(inNum) or not self.isEDIDPrmNumInBounds(prmNum):
-            return
+        self.isInputNumInBounds(inNum)
+        self.isEDIDPrmNumInBounds(prmNum)
 
         cmdStr = "SET EDID in{} {}".format(inNum, prmNum)
         _LOGGER.debug("Setting EDID for input %s to %s...", inNum, prmNum)
@@ -438,8 +430,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param mode: IR system code (see API)
         @return: Current IR system code
         """
-        if not self.isIRInBounds(mode):
-            return
+        self.isIRInBounds(mode)
 
         cmdStr = "SET IR_SC mode{}".format(mode)
         _LOGGER.debug("Setting IR system code to mode %s...", mode)
@@ -454,8 +445,7 @@ class HDMIMatrixSerial(AVAccessSerial):
         @param state: True = On, False = Off
         @return: Current mute status of the output
         """
-        if not self.isAudioOutStringOnDevice(outString):
-            return
+        self.isAudioOutStringOnDevice(outString)
 
         # Get the text to use for the command based on state
         stateText = "on" if state else "off"

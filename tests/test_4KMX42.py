@@ -29,13 +29,26 @@ def test_canCommmunicate():
 
 def test_sendEmptyString():
     """
-    Test communicating with the device
+    Test sending an empty string
     """
     matrix = HDMIMatrixSerial(SERIAL_URL, AV_DEVICE)
 
     # getVer has a stable output to use for verifying communication
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         matrix._SendData("")
+
+
+def test_oobOutputs():
+    """
+    Test getting/setting outputs that don't exist
+    """
+    matrix = HDMIMatrixSerial(SERIAL_URL, AV_DEVICE)
+
+    # getVer has a stable output to use for verifying communication
+    with pytest.raises(ValueError):
+        # Attempt to get input mapped to n+1 output
+        # on a device with only n outputs
+        matrix.getMapping(matrix.outputs + 1)
 
 
 # For manual use instead of pytest
@@ -43,3 +56,4 @@ if __name__ == "__main__":
     test_createDevice()
     test_canCommmunicate()
     test_sendEmptyString()
+    test_oobOutputs()
